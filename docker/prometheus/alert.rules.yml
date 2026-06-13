@@ -1,0 +1,26 @@
+groups:
+  - name: streamforge
+    rules:
+      - alert: PipelineFailureRateHigh
+        expr: rate(streamforge_pipeline_executions_total{state="FAILED"}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Tasa de fallos de pipeline alta"
+
+      - alert: QualityDegradationCritical
+        expr: streamforge_quality_failure_rate > 0.20
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Calidad de datos critica - {{ $value | humanizePercentage }} de fallos"
+
+      - alert: StepLatencyHigh
+        expr: histogram_quantile(0.99, rate(streamforge_step_duration_seconds_bucket[5m])) > 300
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Latencia p99 de paso supera 5 minutos"

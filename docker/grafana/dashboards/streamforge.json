@@ -1,0 +1,11 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "panels": [],
+  "schemaVersion": 38,
+  "tags": ["streamforge"],
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "StreamForge - Overview",
+  "uid": "streamforge-overview",
+  "version": 1
+}
