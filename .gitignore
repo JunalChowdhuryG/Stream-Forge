@@ -1,0 +1,11 @@
+target/
+*.class
+*.jar
+.idea/
+*.iml
+.vscode/
+application-local.yml
+reports/
+docs/benchmarks/*/
+.DS_Store
+Thumbs.db
