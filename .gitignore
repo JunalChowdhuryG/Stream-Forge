@@ -9,3 +9,4 @@ reports/
 docs/benchmarks/*/
 .DS_Store
 Thumbs.db
+jqwik
