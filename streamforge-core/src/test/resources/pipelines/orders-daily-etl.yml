@@ -1,0 +1,77 @@
+pipeline:
+  id: orders-daily-etl
+  name: "Pipeline diario de ordenes"
+  version: "1.0.0"
+  description: "Extrae ordenes y clientes de PostgreSQL, los enriquece y los carga al warehouse"
+
+  steps:
+    - id: extract-orders
+      type: SOURCE
+      connector: postgres
+      config:
+        query: "SELECT id, customer_id, total_amount, status, created_at FROM orders WHERE DATE(created_at) = :date"
+        params:
+          date: "${execution.date}"
+      output: orders_raw
+
+    - id: extract-customers
+      type: SOURCE
+      connector: postgres
+      config:
+        table: customers
+        columns: [id, name, email, country]
+      output: customers_raw
+
+    - id: join-orders-customers
+      type: TRANSFORM
+      depends_on: [extract-orders, extract-customers]
+      transform: join
+      config:
+        left:  orders_raw
+        right: customers_raw
+        on:    customer_id
+        type:  INNER
+      output: orders_enriched
+      quality:
+        threshold: 0.95
+        rules:
+          - field: customer_id
+            checks: [NOT_NULL]
+          - field: total_amount
+            checks:
+              - type: NOT_NULL
+              - type: RANGE
+                min: 0.01
+                max: 999999.99
+          - field: email
+            checks:
+              - type: REGEX
+                pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+
+    - id: filter-valid-orders
+      type: TRANSFORM
+      depends_on: [join-orders-customers]
+      transform: filter
+      config:
+        condition: "status != 'CANCELLED' AND total_amount > 0"
+      output: orders_valid
+
+    - id: load-warehouse
+      type: SINK
+      depends_on: [filter-valid-orders]
+      connector: postgres
+      config:
+        table: orders_warehouse
+        mode:  UPSERT
+        key:   id
+      input: orders_valid
+
+    - id: load-kafka
+      type: SINK
+      depends_on: [filter-valid-orders]
+      connector: kafka
+      config:
+        topic:            orders.processed
+        partitionBy:      customer_id
+        serializationFmt: JSON
+      input: orders_valid
