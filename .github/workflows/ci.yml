@@ -29,10 +29,13 @@ jobs:
         run: mvn compile --no-transfer-progress
 
       - name: Tests unitarios - core
-        run: mvn test --no-transfer-progress -pl streamforge-core
+        run: mvn test --no-transfer-progress -pl streamforge-core -Dtest="DAGBuilderTest,TopologicalSorterTest,PipelineDefinitionTest,DAGProperties,PipelineFSMTest,StepFSMTest,InMemoryCheckpointManagerTest,LineageGraphTest"
 
       - name: Tests unitarios - quality
-        run: mvn test --no-transfer-progress -pl streamforge-quality
+        run: mvn test --no-transfer-progress -pl streamforge-quality -Dtest="QualityRuleEngineTest,RuleEvaluatorsTest,QualityRuleProperties"
+
+      - name: Tests de integracion - engine
+        run: mvn test --no-transfer-progress -pl streamforge-engine -Dtest="PostgresCheckpointManagerIT,PostgresLineageRepositoryIT"
 
       - name: Subir reportes de tests
         if: always()
