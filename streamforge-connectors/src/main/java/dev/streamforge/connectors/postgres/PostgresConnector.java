@@ -153,8 +153,7 @@ public class PostgresConnector implements Connector {
         }
     }
 
-    // ── Privados ──────────────────────────────────────────────────────────────
-
+    //Privados
     private String buildSelectQuery(ConnectorConfig config, ExecutionContext ctx) {
         String query = config.getString("query");
         if (query != null) {
