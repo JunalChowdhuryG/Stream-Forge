@@ -1,11 +1,155 @@
 {
   "annotations": { "list": [] },
   "editable": true,
-  "panels": [],
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "id": 1,
+      "title": "Ejecuciones de pipeline por minuto",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(streamforge_pipeline_executions_total{state='COMPLETED'}[1m])",
+          "legendFormat": "Completados/min"
+        },
+        {
+          "expr": "rate(streamforge_pipeline_executions_total{state='FAILED'}[1m])",
+          "legendFormat": "Fallidos/min"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "id": 2,
+      "title": "Duracion de pipelines (ms) - percentiles",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(streamforge_pipeline_duration_ms_bucket[5m]))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(streamforge_pipeline_duration_ms_bucket[5m]))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(streamforge_pipeline_duration_ms_bucket[5m]))",
+          "legendFormat": "p99"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "id": 3,
+      "title": "Calidad de datos - tasa de fallos por campo",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "streamforge_quality_failure_rate",
+          "legendFormat": "{{pipeline_id}} / {{field}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "steps": [
+              { "color": "green",  "value": 0    },
+              { "color": "yellow", "value": 0.05 },
+              { "color": "red",    "value": 0.20 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Duracion de pasos por pipeline",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, rate(streamforge_step_duration_ms_bucket[5m]))",
+          "legendFormat": "p99 - {{pipeline_id}} / {{step_id}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ms" } }
+    },
+    {
+      "id": 5,
+      "title": "Filas procesadas por minuto",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "rate(streamforge_rows_processed_total{operation='read'}[1m])",
+          "legendFormat": "Leidas/min"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 6,
+      "title": "Filas rechazadas por calidad",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 16 },
+      "targets": [
+        {
+          "expr": "increase(streamforge_rows_rejected_total[1h])",
+          "legendFormat": "Rechazadas (ultima hora)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": 0   },
+              { "color": "yellow","value": 100  },
+              { "color": "red",   "value": 1000 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Checkpoints guardados vs reanudaciones",
+      "type": "timeseries",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "expr": "rate(streamforge_checkpoints_total{type='checkpoint'}[5m])",
+          "legendFormat": "Guardados/min"
+        },
+        {
+          "expr": "rate(streamforge_checkpoints_total{type='resumption'}[5m])",
+          "legendFormat": "Reanudaciones/min"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 8,
+      "title": "Errores de conectores",
+      "type": "timeseries",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 16 },
+      "targets": [
+        {
+          "expr": "rate(streamforge_connector_errors_total[5m])",
+          "legendFormat": "{{connector}} / {{operation}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    }
+  ],
   "schemaVersion": 38,
   "tags": ["streamforge"],
   "time": { "from": "now-1h", "to": "now" },
   "title": "StreamForge - Overview",
   "uid": "streamforge-overview",
-  "version": 1
+  "version": 2
 }
