@@ -22,7 +22,7 @@ jobs:
           distribution: "temurin"
           cache: "maven"
 
-      - name: Instalar modulos base en repositorio local
+      - name: Instalar modulos base
         run: mvn install -pl streamforge-core,streamforge-quality,streamforge-connectors --also-make -DskipTests --no-transfer-progress
 
       - name: Compilar todos los modulos
@@ -34,8 +34,11 @@ jobs:
       - name: Tests unitarios - quality
         run: mvn test --no-transfer-progress -pl streamforge-quality -Dtest="QualityRuleEngineTest,RuleEvaluatorsTest,QualityRuleProperties"
 
+      - name: Tests unitarios - connectors
+        run: mvn test --no-transfer-progress -pl streamforge-connectors -Dtest="CsvConnectorTest"
+
       - name: Tests de integracion - engine
-        run: mvn test --no-transfer-progress -pl streamforge-engine -Dtest="PostgresCheckpointManagerIT,PostgresLineageRepositoryIT"
+        run: mvn test --no-transfer-progress -pl streamforge-engine,streamforge-connectors -Dtest="PostgresCheckpointManagerIT,PostgresLineageRepositoryIT,PostgresConnectorIT,KafkaConnectorIT,PipelineExecutorIT"
 
       - name: Subir reportes de tests
         if: always()
