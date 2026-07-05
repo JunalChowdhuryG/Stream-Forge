@@ -168,8 +168,7 @@ class QualityRuleEngineTest {
         assertNotNull(report);
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
+    //Helpers
     @SafeVarargs
     private DataBatch buildBatch(Map<String, Object>... rows) {
         List<FieldDefinition> fields = new ArrayList<>();
