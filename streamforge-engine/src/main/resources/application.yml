@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: streamforge-engine
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:streamforge}
+    username: ${POSTGRES_USER:streamforge}
+    password: ${POSTGRES_PASS:streamforge123}
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+
+server:
+  port: 8080
+
+management:
+  server:
+    port: 8081
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+streamforge:
+  instanceId: ${STREAMFORGE_INSTANCE_ID:streamforge-engine-01}
+  execution:
+    maxConcurrentPipelines: 10
+    maxConcurrentSteps: 20
+    stepTimeoutSeconds: 3600
+    retryMaxAttempts: 5
+    retryInitialDelayMs: 1000
+    retryMaxDelayMs: 30000
+  checkpoint:
+    enabled: true
+    checksumEnabled: true
+  lineage:
+    enabled: true
+    granularity: FIELD
+    retentionDays: 90
+  quality:
+    enabled: true
+    failOnThresholdBreached: true
+    reportOutputDir: reports/quality
+  schema:
+    driftMode: PERMISSIVE

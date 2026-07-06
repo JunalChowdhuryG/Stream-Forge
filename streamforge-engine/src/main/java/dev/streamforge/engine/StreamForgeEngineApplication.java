@@ -1,0 +1,11 @@
+package dev.streamforge.engine;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class StreamForgeEngineApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(StreamForgeEngineApplication.class, args);
+    }
+}
