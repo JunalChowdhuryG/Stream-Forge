@@ -23,7 +23,8 @@ import dev.streamforge.quality.model.RuleType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-
+import dev.streamforge.connectors.api.Connector;
+import dev.streamforge.connectors.api.ConnectorConfig;
 import java.time.Instant;
 import java.util.*;
 
@@ -71,22 +72,26 @@ public class StepExecutor {
      * Ejecuta el paso dado en el contexto de ejecucion.
      */
     public StepExecutionResult execute(StepDefinition step,
-                                        ExecutionContext ctx,
-                                        LineageGraph lineageGraph) {
+                                       ExecutionContext ctx,
+                                       LineageGraph lineageGraph) {
         String executionId = ctx.getExecutionId();
         String stepId      = step.getId();
         String pipelineId  = ctx.getPipeline().getId();
 
-        // MDC para logging estructurado
         MDC.put("executionId", executionId);
         MDC.put("pipelineId",  pipelineId);
         MDC.put("stepId",      stepId);
 
         try {
-            // Paso 1: verificar checkpoint
             if (checkpointManager.exists(executionId, stepId)) {
-                log.info("Paso con checkpoint — saltando: stepId={}", stepId);
+                log.info("Paso con checkpoint - saltando: stepId={}", stepId);
                 metrics.recordCheckpoint(pipelineId, true);
+
+                // Si el paso tiene output, recuperarlo para que pasos siguientes lo usen
+                if (step.getOutput() != null) {
+                    recoverOutputFromCheckpoint(step, ctx);
+                }
+
                 return StepExecutionResult.skipped(stepId);
             }
 
@@ -128,7 +133,7 @@ public class StepExecutor {
                 long duration = System.currentTimeMillis() - startMs;
 
                 if (attempt > retryMaxAttempts) {
-                    log.error("Paso fallido tras {} intentos — stepId={}, error={}",
+                    log.error("Paso fallido tras {} intentos - stepId={}, error={}",
                             attempt, step.getId(), e.getMessage());
                     fsm.fail();
                     metrics.recordStepExecution(pipelineId, step.getId(),
@@ -140,7 +145,7 @@ public class StepExecutor {
                     return StepExecutionResult.failed(step.getId(), e.getMessage(), duration);
                 }
 
-                log.warn("Intento {} fallido para stepId={}, reintentando en {}ms — {}",
+                log.warn("Intento {} fallido para stepId={}, reintentando en {}ms - {}",
                         attempt, step.getId(), delay, e.getMessage());
                 try {
                     Thread.sleep(delay);
@@ -177,14 +182,14 @@ public class StepExecutor {
             recorder.recordSource(outputBatch, step.getId());
             ctx.setStepOutput(step.getOutput(), outputBatch);
 
-            log.info("SOURCE completado — stepId={}, rows={}", step.getId(), rowsRead);
+            log.info("SOURCE completado - stepId={}, rows={}", step.getId(), rowsRead);
 
         } else if (step.getType() == StepType.TRANSFORM) {
             outputBatch = applyTransform(step, ctx, recorder);
             rowsRead    = outputBatch.getRowCount();
             ctx.setStepOutput(step.getOutput(), outputBatch);
 
-            log.info("TRANSFORM completado — stepId={}, rows={}", step.getId(), rowsRead);
+            log.info("TRANSFORM completado - stepId={}, rows={}", step.getId(), rowsRead);
 
         } else if (step.getType() == StepType.SINK) {
             DataBatch inputBatch = ctx.getStepOutput(step.getInput())
@@ -216,7 +221,7 @@ public class StepExecutor {
                 step.getConfig().getOrDefault("path", "unknown"))).toString();
             recorder.recordSink(inputBatch, destDataset, step.getId());
 
-            log.info("SINK completado — stepId={}, written={}, rejected={}",
+            log.info("SINK completado - stepId={}, written={}, rejected={}",
                     step.getId(), rowsWritten, rowsRejected);
         }
 
@@ -249,7 +254,7 @@ public class StepExecutor {
                     "No hay input para el transform filter en paso: " + step.getId()));
 
             // Filter: todas las filas pasan (la condicion se aplica en el conector)
-            // Por ahora retornamos el batch completo — la logica de filtro
+            // Por ahora retornamos el batch completo - la logica de filtro
             // se implementa en H8 con el ExpressionEvaluator
             recorder.recordFilter(input,
                 buildOutputBatch(input, step.getOutput()), step.getId());
@@ -273,7 +278,7 @@ public class StepExecutor {
         }
 
         // Transform desconocido: pasar los datos tal como estan
-        log.warn("Transform desconocido '{}' — pasando datos sin modificar", transformType);
+        log.warn("Transform desconocido '{}' - pasando datos sin modificar", transformType);
         DataBatch input = findInputBatch(step, ctx)
             .orElseThrow(() -> new IllegalStateException(
                 "No hay input para paso: " + step.getId()));
@@ -391,6 +396,32 @@ public class StepExecutor {
                     result.getFailureRate()
                 );
             }
+        }
+    }
+    /**
+     * Cuando un paso es SKIPPED por tener checkpoint, necesitamos
+     * re-ejecutar la lectura para cargar el output en el contexto.
+     * Esto permite que los pasos siguientes encuentren los datos.
+     *
+     * Solo aplica a pasos SOURCE - los TRANSFORM y SINK no producen
+     * outputs que otros pasos necesiten leer del contexto.
+     */
+    private void recoverOutputFromCheckpoint(StepDefinition step,
+                                             ExecutionContext ctx) {
+        if (step.getType() != StepType.SOURCE) return;
+
+        try {
+            Connector connector = connectorRegistry.resolveOrThrow(step.getConnector());
+            ConnectorConfig config = new ConnectorConfig(
+                    step.getConnector(), step.getConfig()
+            );
+            DataBatch recovered = connector.read(config, ctx);
+            ctx.setStepOutput(step.getOutput(), recovered);
+            log.info("Output recuperado para paso SKIPPED - stepId={}, dataset={}, rows={}",
+                    step.getId(), recovered.getDatasetName(), recovered.getRowCount());
+        } catch (Exception e) {
+            log.warn("No se pudo recuperar output del paso SKIPPED '{}': {}",
+                    step.getId(), e.getMessage());
         }
     }
 }
