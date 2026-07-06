@@ -63,7 +63,7 @@ curl -X POST http://localhost:8080/pipelines/orders-daily-etl/execute \
 | H5 | Motor de reglas de calidad - 5 evaluadores + reporte HTML | Completado |
 | H6 | Conectores CSV, JSON, PostgreSQL y Kafka | Completado |
 | H7 | Observabilidad - metricas Prometheus y dashboard Grafana | Completado |
-| H8 | API REST, chaos tests y portafolio listo | Pendiente |
+| H8 | API REST, chaos tests y portafolio listo | Completado |
 
 ---
 
