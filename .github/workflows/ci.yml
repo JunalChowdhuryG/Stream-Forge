@@ -32,7 +32,7 @@ jobs:
         run: mvn test --no-transfer-progress -pl streamforge-core -Dtest="DAGBuilderTest,TopologicalSorterTest,PipelineDefinitionTest,DAGProperties,PipelineFSMTest,StepFSMTest,InMemoryCheckpointManagerTest,LineageGraphTest"
 
       - name: Tests unitarios - quality
-        run: mvn test --no-transfer-progress -pl streamforge-quality -Dtest="QualityRuleEngineTest,RuleEvaluatorsTest,QualityRuleProperties"
+        run: mvn test --no-transfer-progress -pl streamforge-quality -Dtest="QualityRuleEngineTest,RuleEvaluatorsTest,QualityRuleProperties,QualityDegradationChaosTest"
 
       - name: Tests unitarios - connectors
         run: mvn test --no-transfer-progress -pl streamforge-connectors -Dtest="CsvConnectorTest"
